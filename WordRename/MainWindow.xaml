@@ -1,0 +1,179 @@
+﻿<Window x:Name="Word"
+        x:Class="WordRename.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WordRename"
+        mc:Ignorable="d"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        FontFamily="{materialDesign:MaterialDesignFont}"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        Title="Gimme Word To rename!"
+        ResizeMode="CanMinimize"
+        Height="700"
+        Width="600">
+    <Window.Resources>
+        <Style x:Key="ButtonCheckStyle"
+               TargetType="Button">
+            <Style.Triggers>
+                <DataTrigger Value="True"
+                             Binding="{Binding Result}">
+                    <Setter Property="Content"
+                            Value="✅" />
+                    <Setter Property="FontSize"
+                            Value="18" />
+                    <Setter Property="Foreground"
+                            Value="#FF298F02" />
+                </DataTrigger>
+                <DataTrigger Value="False"
+                             Binding="{Binding Result}">
+                    <Setter Property="Content"
+                            Value="Not Found" />
+                    <Setter Property="FontSize"
+                            Value="12" />
+                    <Setter Property="Foreground"
+                            Value="#FFE03F3F" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="7*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="4*" />
+            <ColumnDefinition Width="1.3*" />
+        </Grid.ColumnDefinitions>
+        <DockPanel Grid.ColumnSpan="2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox materialDesign:HintAssist.HelperText="Find"
+                         Height="auto"
+                         Grid.Column="0"
+                         x:Name="findbox"
+                         FontWeight="Bold"
+                         Background="#C4D7E0"
+                         Foreground="#4C3A51"
+                         FontSize="14"
+                         Style="{DynamicResource MaterialDesignFloatingHintTextBox}"
+                         HorizontalAlignment="Stretch"
+                         TextAlignment="Center" />
+                <TextBox materialDesign:HintAssist.HelperText="Replace"
+                         Grid.Column="1"
+                         TextAlignment="Center"
+                         Foreground="#1F4690"
+                         FontSize="14"
+                         x:Name="replaceBox"
+                         Background="#FFFFDE"
+                         Style="{DynamicResource MaterialDesignFloatingHintTextBox}" />
+                <CheckBox Style="{DynamicResource MaterialDesignFilterChipAccentOutlineCheckBox}"
+                          x:Name="matchHW"
+                          Content="Match Whole Word"
+                          IsChecked="True"
+                          Grid.Column="2" />
+            </Grid>
+        </DockPanel>
+
+        <DockPanel Grid.Row="2"
+                   Grid.Column="0"
+                   LastChildFill="True">
+            <TextBox  DockPanel.Dock="Left"
+                      x:Name="srcbox"
+                      Background="#CEE5D0"
+                      materialDesign:HintAssist.Hint="c:\xxxx\xxxx\{folder or file}\"
+                      Style="{DynamicResource MaterialDesignFloatingHintTextBox}"
+                      TextWrapping="Wrap"
+                      VerticalAlignment="Stretch" />
+        </DockPanel>
+
+        <Button  Height="30"
+                 x:Name="browsebtn"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Top"
+                 Padding="0"
+                 FontSize="10"
+                 Click="Browse_Click"
+                 Style="{DynamicResource MaterialDesignRaisedLightButton  }"
+                 Grid.Column="2"
+                 Grid.Row="2"
+                 Content="1 - Browse"
+                 Margin="10,5,0,0" />
+
+        <Button  Height="30"
+                 x:Name="donebtn"
+                 Click="Start_Click"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Bottom"
+                 Padding="0"
+                 FontSize="10"
+                 Style="{DynamicResource MaterialDesignRaisedSecondaryDarkButton  }"
+                 Grid.Column="2"
+                 Grid.Row="2"
+                 Content="2 - Start"
+                 Margin="10,0,0,5" />
+
+        <ListView Grid.Row="3"
+                  Grid.ColumnSpan="2"
+                  ItemsSource="{Binding Mydocuments}"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn DisplayMemberBinding="{Binding Document}">
+                        <GridViewColumnHeader Style="{DynamicResource MaterialDesignRaisedLightButton}"
+                                              materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
+                                              Content="Document"
+                                              FontFamily="Consolas" />
+
+                    </GridViewColumn>
+                    <GridViewColumn>
+                        <GridViewColumnHeader Style="{DynamicResource MaterialDesignRaisedSecondaryLightButton}"
+                                              materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
+                                              Content="Result"
+                                              Foreground="White"
+                                              FontFamily="Consolas" />
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button VerticalAlignment="Center"
+                                        BorderBrush="{x:Null}"
+                                        Background="{x:Null}"
+                                        Style="{StaticResource ResourceKey=ButtonCheckStyle}">
+                                </Button>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding NewDoc}">
+                        <GridViewColumnHeader Style="{DynamicResource MaterialDesignRaisedDarkButton}"
+                                              materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
+                                              Content="New Document"
+                                              FontWeight="Bold"
+                                              FontFamily="Consolas" />
+                    </GridViewColumn>
+                </GridView>
+
+            </ListView.View>
+        </ListView>
+        <materialDesign:Snackbar Grid.Row="3"
+                                 Grid.ColumnSpan="2"
+                                 IsActive="False"
+                                 MessageQueue="{materialDesign:MessageQueue}"
+                                 x:Name="snackStatus" />
+    </Grid>
+
+</Window>
