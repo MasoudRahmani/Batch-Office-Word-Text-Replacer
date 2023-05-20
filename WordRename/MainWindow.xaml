@@ -15,10 +15,11 @@
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
         Title="Gimme Word To rename!"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResize"
         Height="700"
-        Width="600">
+        Width="650">
     <Window.Resources>
+        <local:EnableToVisibleConverter x:Key="bvConverter" />
         <Style x:Key="ButtonCheckStyle"
                TargetType="Button">
             <Style.Triggers>
@@ -42,12 +43,30 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <!--<Style TargetType="{x:Type TextBox}"
+               x:Key="DestEnabler">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=IsChecked, ElementName=StaticDestination}"
+                             Value="True">
+                    <Setter Property="Visibility"
+                            Value="Hidden" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsChecked}"
+                             Value="False">
+                    <Setter Property="Visibility"
+                            Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>-->
     </Window.Resources>
-    <Grid>
+    <Grid AllowDrop="True">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="20" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="auto"
+                           MinHeight="57" />
+            <RowDefinition Height="24" />
+            <RowDefinition Height="*"
+                           MinHeight="88" />
+            <RowDefinition Height="50" />
             <RowDefinition Height="7*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -94,10 +113,16 @@
             <TextBox  DockPanel.Dock="Left"
                       x:Name="srcbox"
                       Background="#CEE5D0"
-                      materialDesign:HintAssist.Hint="c:\xxxx\xxxx\{folder or file}\"
-                      Style="{DynamicResource MaterialDesignFloatingHintTextBox}"
+                      materialDesign:HintAssist.Hint="Documents Paths: X:\{folder or files}\;"
+                      materialDesign:HintAssist.FontFamily="consolas"
+                      Style="{DynamicResource MaterialDesignOutlinedTextBox}"
                       TextWrapping="Wrap"
+                      AllowDrop="True"
+
                       VerticalAlignment="Stretch" />
+            <!--PreviewDragOver="Srcbox_PreviewDragOVer"
+                      DragEnter="Srcbox_DragEnter"
+                      Drop="Srcbox_Drop"-->
         </DockPanel>
 
         <Button  Height="30"
@@ -126,8 +151,49 @@
                  Content="2 - Start"
                  Margin="10,0,0,5" />
 
-        <ListView Grid.Row="3"
+        <CheckBox Style="{DynamicResource MaterialDesignFilterChipPrimaryCheckBox}"
+                  x:Name="VarDestination"
+                  Content="Result near each File"
+                  IsChecked="True"
+                  Grid.Row="3"
+                  Grid.Column="0" />
+
+        <TextBox  Grid.Row="3"
+                  Margin="170,5,2,5"
+                  Grid.Column="0"
                   Grid.ColumnSpan="2"
+                  x:Name="destBox"
+                  Background="#cfff"
+                  Visibility="{Binding ElementName=VarDestination, Path=IsChecked, Converter={StaticResource bvConverter}}"
+                  TextWrapping="Wrap"
+                  materialDesign:HintAssist.Hint="Choose Destination Folder: "
+                  materialDesign:HintAssist.Foreground="CadetBlue"
+                  Padding="10"
+                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                  VerticalContentAlignment="Top"
+                  VerticalAlignment="Stretch" />
+
+        <TextBlock Grid.Row="3"
+                   Margin="160,2,2,0"
+                   Visibility="{Binding ElementName=VarDestination,Path=IsChecked, Converter={StaticResource BooleanToVisibilityConverter}}"
+                   Grid.ColumnSpan="2"
+                   TextWrapping="WrapWithOverflow"
+                   FontFamily="Raleway"
+                   Style="{StaticResource MaterialDesignCaptionTextBlock}">
+            <Run Background="GreenYellow">Enabled</Run>
+            <LineBreak />
+            <Run>Result of each file is saved at same directory.</Run>
+            <LineBreak />
+            <Run Foreground="Blue">>>   New File Name:</Run>
+            <Run FontWeight="Light" Foreground="DarkMagenta">[OriginalFileName]</Run>
+            +<Run FontWeight="DemiBold">Renamed</Run>
+            +<Run FontWeight="Heavy">[number of copy] {0-9}</Run>(.doc|.docx)
+        </TextBlock>
+
+        <ListView Grid.Row="4"
+                  Grid.ColumnSpan="2"
+                  Margin="0,3,0,3"
+                  Padding="5,0,0,0"
                   ItemsSource="{Binding Mydocuments}"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch"
@@ -170,7 +236,12 @@
             </ListView.View>
         </ListView>
         <materialDesign:Snackbar Grid.Row="3"
+                                 Margin="0,100,0,0"
                                  Grid.ColumnSpan="2"
+                                 Width="500"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 Grid.RowSpan="2"
                                  IsActive="False"
                                  MessageQueue="{materialDesign:MessageQueue}"
                                  x:Name="snackStatus" />
