@@ -43,6 +43,46 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <GridView x:Key="ListViewView1">
+            <GridView.ColumnHeaderContainerStyle>
+                <Style TargetType="{x:Type GridViewColumnHeader}">
+                    <Setter Property="IsEnabled"
+                            Value="True" />
+                </Style>
+            </GridView.ColumnHeaderContainerStyle>
+            <GridViewColumn DisplayMemberBinding="{Binding Document}">
+                <GridViewColumnHeader Content="Document"
+                                      FontFamily="Consolas"
+                                      BorderBrush="#FF210303"
+                                      Background="#FF941BA2"
+                                      Foreground="White"
+                                      HorizontalContentAlignment="Center"
+                                      Cursor="Hand" />
+            </GridViewColumn>
+            <GridViewColumn>
+                <GridViewColumn.CellTemplate>
+                    <DataTemplate>
+                        <Button Background="{x:Null}"
+                                BorderBrush="{x:Null}"
+                                Style="{StaticResource ResourceKey=ButtonCheckStyle}"
+                                VerticalAlignment="Center" />
+                    </DataTemplate>
+                </GridViewColumn.CellTemplate>
+                <GridViewColumnHeader materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
+                                      Content="Result"
+                                      Foreground="White"
+                                      FontFamily="Consolas"
+                                      Style="{DynamicResource MaterialDesignRaisedSecondaryLightButton}"
+                                      Width="100" />
+            </GridViewColumn>
+            <GridViewColumn DisplayMemberBinding="{Binding NewDoc}">
+                <GridViewColumnHeader materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
+                                      Content="New Document"
+                                      FontFamily="Consolas"
+                                      FontWeight="Bold"
+                                      Style="{DynamicResource MaterialDesignRaisedDarkButton}" />
+            </GridViewColumn>
+        </GridView>
         <!--<Style TargetType="{x:Type TextBox}"
                x:Key="DestEnabler">
             <Style.Triggers>
@@ -184,62 +224,34 @@
             <Run>Result of each file is saved at same directory.</Run>
             <LineBreak />
             <Run Foreground="Blue">>>   New File Name:</Run>
-            <Run FontWeight="Light" Foreground="DarkMagenta">[OriginalFileName]</Run>
+            <Run FontWeight="Light"
+                 Foreground="DarkMagenta">[OriginalFileName]</Run>
             +<Run FontWeight="DemiBold">Renamed</Run>
             +<Run FontWeight="Heavy">[number of copy] {0-9}</Run>(.doc|.docx)
         </TextBlock>
 
-        <ListView Grid.Row="4"
+        <ListView View="{DynamicResource ListViewView1}"
+                  Grid.Row="4"
                   Grid.ColumnSpan="2"
-                  Margin="0,3,0,3"
+                  Margin="5,5,5,40"
                   Padding="5,0,0,0"
                   ItemsSource="{Binding Mydocuments}"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
                   HorizontalContentAlignment="Center"
-                  VerticalContentAlignment="Center">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn DisplayMemberBinding="{Binding Document}">
-                        <GridViewColumnHeader Style="{DynamicResource MaterialDesignRaisedLightButton}"
-                                              materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
-                                              Content="Document"
-                                              FontFamily="Consolas" />
+                  VerticalContentAlignment="Center"
+                  d:ItemsSource="{d:SampleData ItemCount=5}"
+                  Background="{x:Null}" />
+        <Button Grid.Row="4"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Right"
+                Grid.Column="2"
+                Content="LOG"
+                Style="{StaticResource MaterialDesignOutlinedLightButton}"
+                FontStyle="Italic"
+                Click="LogBtn_Clicked"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Margin="0,3,15,0">
 
-                    </GridViewColumn>
-                    <GridViewColumn>
-                        <GridViewColumnHeader Style="{DynamicResource MaterialDesignRaisedSecondaryLightButton}"
-                                              materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
-                                              Content="Result"
-                                              Foreground="White"
-                                              FontFamily="Consolas" />
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button VerticalAlignment="Center"
-                                        BorderBrush="{x:Null}"
-                                        Background="{x:Null}"
-                                        Style="{StaticResource ResourceKey=ButtonCheckStyle}">
-                                </Button>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn DisplayMemberBinding="{Binding NewDoc}">
-                        <GridViewColumnHeader Style="{DynamicResource MaterialDesignRaisedDarkButton}"
-                                              materialDesign:ButtonAssist.CornerRadius="25 25 0 0"
-                                              Content="New Document"
-                                              FontWeight="Bold"
-                                              FontFamily="Consolas" />
-                    </GridViewColumn>
-                </GridView>
-
-            </ListView.View>
-        </ListView>
-        <Button Grid.Row="4" VerticalAlignment="Top" HorizontalAlignment="Right" Grid.Column="2"
-                Content="LOG" Style="{StaticResource MaterialDesignOutlinedLightButton}"
-                FontStyle="Italic" Click="LogBtn_Clicked"
-                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                Margin="0,0,15,0">
-            
         </Button>
         <materialDesign:Snackbar Grid.Row="3"
                                  Margin="0,100,0,0"
