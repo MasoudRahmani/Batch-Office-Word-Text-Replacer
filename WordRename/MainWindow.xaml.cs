@@ -17,23 +17,22 @@ namespace WordRename
     public partial class MainWindow : System.Windows.Window
     {
         public ObservableCollection<MyDocument> Mydocuments { get; set; }
-        private string _logPath;
         private StreamWriter _logger;
-        private readonly string _appendString = "Renamed";
-        private bool _dragged = false;
+        private string _logPath;
         private string _paths;
-        private string _defaultDestination = string.Empty;
+        private readonly string _appendString = "Renamed";
+        private readonly string _defaultDestination = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BatchWordRename");
+
         public MainWindow()
         {
             Mydocuments = new ObservableCollection<MyDocument>();
             InitializeComponent();
             DataContext = this;
-            LogMe("Start of Activity");
             Closed += MainWindow_Closed;
             Closing += Main_Closing;
 
-            _defaultDestination = destBox.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BatchWordRename");
-
+            LogMe("Start of Activity");
+            destBox.Text = _defaultDestination;
         }
 
         private void Main_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -114,7 +113,10 @@ namespace WordRename
                         Find_Replace(p, find, replace, matchhw, _appendString, IsDC, dest);
                     });
                     Task.Factory.StartNew(() => { FACT(_paths, IsDestinationChecked, destination); })
-                        .ContinueWith((s) => { DispatchMe(() => { Working(false); }); ShowStatus("Done."); }); ;
+                        .ContinueWith((s) =>
+                        {
+                            DispatchMe(() => { Working(false); ShowStatus("Done."); });
+                        });
                     break;
                 case PathType.Directory:
                     var DAct = new Action<string, bool, string>((string p, bool IsDC, string dest) =>
@@ -313,7 +315,7 @@ namespace WordRename
         }
         private void ShowStatus(string msg)
         {
-            snackStatus.MessageQueue.Enqueue(msg, "OK", () => { snackStatus.IsActive = false; });
+            snackStatus.MessageQueue.Enqueue(msg, "OK", () => { snackStatus.IsActive = false; }, true);
 
         }
         private void Working(bool arewe)
@@ -353,7 +355,6 @@ namespace WordRename
             srcbox.Text = txt.Substring(0, txt.Length - 2);
             LogMe($"Drag and Drop added: {ok} word file was added and {not} were not accepted. ");
             ShowStatus($"> Only {ok} document got accepted, other {not} file were not.");
-            _dragged = true;
         }
 
         private void Srcbox_PreviewDragOVer(object sender, DragEventArgs e)
