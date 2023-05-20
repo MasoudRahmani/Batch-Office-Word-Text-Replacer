@@ -6,6 +6,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Controls;
+using System.Diagnostics;
 
 namespace WordRename
 {
@@ -17,15 +19,19 @@ namespace WordRename
         public ObservableCollection<MyDocument> Mydocuments { get; set; }
         private string _logPath;
         private StreamWriter _logger;
-        private string _outputfoldername = "WrdRn_Output";
+        private readonly string _appendString = "Renamed";
+        private bool _dragged = false;
+        private string _paths;
 
         public MainWindow()
         {
             Mydocuments = new ObservableCollection<MyDocument>();
             InitializeComponent();
             DataContext = this;
+            LogMe("Start of Activity");
             Closed += MainWindow_Closed;
             Closing += Main_Closing;
+            destBox.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BatchWordRename");
         }
 
         private void Main_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -34,6 +40,7 @@ namespace WordRename
             {
                 LogMe("End of Activity");
             }
+
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)
@@ -44,10 +51,12 @@ namespace WordRename
         private void Browse_Click(object sender, RoutedEventArgs e)
         {
             Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+            LogMe("Browsed...");
 
             // Set filter for file extension and default file extension
             dlg.DefaultExt = ".doc | .docx";
             dlg.Filter = "Word Document (.doc;.docx)|*.doc;*.docx";
+            dlg.Multiselect = true;
 
             // Display OpenFileDialog by calling ShowDialog method
             var result = dlg.ShowDialog();
@@ -56,60 +65,84 @@ namespace WordRename
             if (result == true)
             {
                 // Open document
-                srcbox.Text = dlg.FileName;
+                srcbox.Text = string.Join(";\n", dlg.FileNames);
             }
         }
 
-        private string _path;
         private void Start_Click(object sender, RoutedEventArgs e)
         {
-            _path = srcbox.Text;
+            _paths = srcbox.Text;
             string find = findbox.Text;
             string replace = replaceBox.Text;
             bool matchhw = (bool)matchHW.IsChecked;
+            bool IsDestinationChecked = (bool)VarDestination.IsChecked;
 
-            if (string.IsNullOrEmpty(findbox.Text) | string.IsNullOrWhiteSpace(_path))
+            if (IsDestinationChecked == false && string.IsNullOrEmpty(destBox.Text))
             {
-                ShowStatus("Find and Path cannot be empty");
+                ShowStatus("Destination cannot be empty!"); return;
+            }
+            if (Directory.Exists(destBox.Text) == false && IsDestinationChecked == false)
+            {
+                ShowStatus("Destination is wrong!"); return;
+            }
+
+            if (string.IsNullOrEmpty(findbox.Text) | string.IsNullOrWhiteSpace(_paths))
+            {
+                ShowStatus("Find and Path cannot be empty!");
                 return;
             }
             ShowStatus("Working...");
             Working(true);
 
-            PathType ptype = GetPathType(_path);
-            if (ptype != PathType.invalid)
-            {
-                var newdir = Path.Combine(Path.GetDirectoryName(_path), _outputfoldername);
-                Directory.CreateDirectory(newdir);
-                SetLogPath(_path);
-            }
-
-            switch (ptype)
+            switch (GetPathType(_paths))
             {
                 case PathType.File:
-                    LogMe($"File Job: '{_path}'");
+                    LogMe($"File Job: '{_paths}'");
                     LogMe($"^^^^^^^^^^^^^^^^^ find: '{find}' & replace: '{replace}' ^^^^^^^^^^^^^^^^^");
-                    Task.Factory.StartNew(new Action(() =>
+                    var FACT = new Action<string, bool>((string p, bool IsDC) =>
                     {
-                        Find_Replace(_path, find, replace, matchhw, _outputfoldername);
-                    })).ContinueWith((s) => { DispatchMe(() => { Working(false); }); ShowStatus("Done."); }); ;
+                        Find_Replace(p, find, replace, matchhw, _appendString, IsDC);
+                    });
+                    Task.Factory.StartNew(() => { FACT(_paths, IsDestinationChecked); })
+                        .ContinueWith((s) => { DispatchMe(() => { Working(false); }); ShowStatus("Done."); }); ;
                     break;
                 case PathType.Directory:
+                    var DAct = new Action<string, bool>((string p, bool IsDC) =>
+                    {
+                        var path = p;
+                        var files = Directory.EnumerateFiles(path).Where(f => f.ToLower().EndsWith("docx") || f.ToLower().EndsWith("doc")).ToList();
+                        files.RemoveAll(x => { return Path.GetFileName(x).StartsWith("~$"); });
 
-                    Task.Factory.StartNew(new Action<object>((object p) =>
-                   {
-                       var path = (string)p;
-                       var files = Directory.EnumerateFiles(path).Where(f => f.ToLower().EndsWith("docx") || f.ToLower().EndsWith("doc")).ToList();
-                       files.RemoveAll(x => { return Path.GetFileName(x).StartsWith("~$"); });
+                        LogMe($"Directory Job for *{files.Count}* files: \r\n\r\n{string.Join("\r\n", files)}");
+                        LogMe($"^^^^^^^^^^^^^^^^^ find: '{find}' & replace: '{replace}' ^^^^^^^^^^^^^^^^^");
 
-                       LogMe($"Directory Job for *{files.Count}* files in: '{path}'");
-                       LogMe($"^^^^^^^^^^^^^^^^^ find: '{find}' & replace: '{replace}' ^^^^^^^^^^^^^^^^^");
+                        files.ForEach(x =>
+                        {
+                            Find_Replace(x, find, replace, matchhw, _appendString, IsDC);
+                        });
+                    });
+                    Task.Factory.StartNew(() => DAct(_paths, IsDestinationChecked))
+                        .ContinueWith((s) => { DispatchMe(() => { Working(false); ShowStatus("Done."); }); });
+                    break;
 
-                       files.ForEach(x =>
-                       {
-                           Find_Replace(x, find, replace, matchhw, _outputfoldername);
-                       });
-                   }), _path).ContinueWith((s) => { DispatchMe(() => { Working(false); ShowStatus("Done."); }); });
+                case PathType.MultipleFile:
+                    var MFAct = new Action<string, bool>((string p, bool IsDC) =>
+                    {
+                        var files = p.Split(";\n").ToList();
+
+                        files.RemoveAll(x => { return Path.GetFileName(x).StartsWith("~$"); });
+
+                        LogMe($"MultipleFile Job for *{files.Count}* files: \r\n\r\n{string.Join("\r\n", files)}");
+                        LogMe($"^^^^^^^^^^^^^^^^^ find: '{find}' & replace: '{replace}' ^^^^^^^^^^^^^^^^^");
+
+                        files.ForEach(x =>
+                        {
+                            Find_Replace(x, find, replace, matchhw, _appendString, IsDC);
+                        });
+                    });
+                    Task.Factory.StartNew(() => MFAct(_paths, IsDestinationChecked))
+                        .ContinueWith((s) => { DispatchMe(() => { Working(false); ShowStatus("Done."); }); });
+
                     break;
                 case PathType.invalid:
                     ShowStatus("Inavlid Adress");
@@ -122,9 +155,28 @@ namespace WordRename
             }
         }
 
-        private void Find_Replace(string document, string findText, string replaceText, bool matchhw, string outputFolder)
+        private void Find_Replace(string document, string findText, string replaceText, bool matchhw, string appendString, bool varDest)
         {
-            var newDoc = Path.Combine(Path.GetDirectoryName(document), outputFolder, Path.GetFileName(document));
+            bool SameFolder = varDest;
+            string newDoc = string.Empty;
+            var fileDirectory = Path.GetDirectoryName(document);
+            var fileName_NoExt = Path.GetFileNameWithoutExtension(document);
+            var ext = Path.GetExtension(document);
+
+            if (SameFolder)
+            {
+                newDoc = Path.Combine(fileDirectory, string.Concat(fileName_NoExt, appendString, ext));
+                if (File.Exists(newDoc))
+                {
+                    int index = 1;
+                    newDoc = Path.Combine(fileDirectory, string.Concat(fileName_NoExt, appendString, index, ext));
+                    while (File.Exists(newDoc))
+                        newDoc = Path.Combine(fileDirectory, string.Concat(fileName_NoExt, appendString, ++index, ext));
+                }
+            }
+            else
+                newDoc = Path.Combine(destBox.Text, Path.GetFileName(document));
+
 
             var wordApp = new _Word.Application();
             try
@@ -145,13 +197,14 @@ namespace WordRename
 
                 bool result = finder.Execute(Replace: _Word.WdReplace.wdReplaceAll);
 
-                doc.SaveAs2(newDoc);
-                doc.Close();
-
                 if (result)
+                {
+                    doc.SaveAs2(newDoc);
                     LogMe($"\t@@@ Found and Replaced. Saved at {newDoc} @@@");
+                }
                 else LogMe("\t------ Nothing was found! ------");
 
+                doc.Close();
 
                 DispatchMe(() => { Mydocuments.Add(new MyDocument() { Document = Path.GetFileName(document), Result = result, NewDoc = Path.GetFileName(newDoc) }); });
             }
@@ -170,26 +223,34 @@ namespace WordRename
                 System.Runtime.InteropServices.Marshal.FinalReleaseComObject(wordApp);
             }
         }
+
         private void DispatchMe(Action a)
         {
             Application.Current.Dispatcher.BeginInvoke(new Action(a));
         }
-        private string GetUniqueID()
+        private static string GetUniqueID()
         {
             return (DateTime.Now - new DateTime(2021, 03, 19)).TotalSeconds.ToString().Substring(0, 7);
         }
+
         private PathType GetPathType(string src)
         {
+            var filelist = src.Split(";\n");
+
+            if (filelist.Length > 1)
+                return PathType.MultipleFile;
+
             if (File.Exists(src))
                 return PathType.File;
             else if (Directory.Exists(src))
             {
                 var d = src.LastOrDefault();
-                if (d != '\\') _path = src + @"\";
+                if (d != '\\') _paths = src + @"\";
                 return PathType.Directory;
             }
             return PathType.invalid;
         }
+
         private string CreateBackup(string doc)
         {
             var backup_name = Path.Combine(Path.GetDirectoryName(doc), $"{Path.GetFileNameWithoutExtension(doc)}_WorkDoc_{GetUniqueID()}{Path.GetExtension(doc)}");
@@ -207,8 +268,8 @@ namespace WordRename
             {
                 _logPath = Path.Combine(reqDirectoryPath, $"WordRename_Log_{GetUniqueID()}.txt");
             }
-
         }
+
         private void LogMe(string msg)
         {
             //if (Application.Current.Resources["wrdrnLogger"] == null ||
@@ -219,11 +280,12 @@ namespace WordRename
             ////            await _logger.
             //await ((StreamWriter)Application.Current.Resources["wrdrnLogger"]).FlushAsync();
 
+            _logPath ??= Path.Combine(Environment.CurrentDirectory, $"wordrename-{DateTime.Now:yy-MM-dd}.txt");
+
             if (_logger == null ||
                 Path.GetDirectoryName((_logger.BaseStream as FileStream).Name) != Path.GetDirectoryName(_logPath))
             {
-                _logger = new StreamWriter(_logPath, true, System.Text.Encoding.UTF8);
-                _logger.AutoFlush = true;
+                _logger = new StreamWriter(_logPath, true, System.Text.Encoding.UTF8) { AutoFlush = true };
             }
             _logger.WriteLine($"{DateTime.Now} -- {msg}");
         }
@@ -237,6 +299,60 @@ namespace WordRename
             browsebtn.IsEnabled = donebtn.IsEnabled = !arewe;
         }
 
+        private void Srcbox_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void Srcbox_Drop(object sender, DragEventArgs e)
+        {
+            string txt = string.Empty;
+            int ok = 0, not = 0;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string file in files)
+                {
+                    if ((file.EndsWith(".doc") || file.EndsWith(".docx")) && File.Exists(file))
+                    {
+                        txt += string.Concat(file, ";\n");
+                        ok++;
+                    }
+                    else not++;
+                }
+            }
+            srcbox.Text = txt.Substring(0, txt.Length - 2);
+            LogMe($"Drag and Drop added: {ok} word file was added and {not} were not accepted. ");
+            ShowStatus($"> Only {ok} document got accepted, other {not} file were not.");
+            _dragged = true;
+        }
+
+        private void Srcbox_PreviewDragOVer(object sender, DragEventArgs e)
+        {
+            e.Handled = true;
+        }
+
+        private void LogBtn_Clicked(object sender, RoutedEventArgs e)
+        {
+            var a = new Action<string>((string p) =>
+            {
+                Process.Start(new ProcessStartInfo()
+                {
+                    FileName = p,
+                    CreateNoWindow = false,
+                    WindowStyle = ProcessWindowStyle.Normal,
+                    UseShellExecute = true
+                });
+            });
+            Task.Factory.StartNew(() => { a(_logPath); });
+        }
     }
 
     public class MyDocument
@@ -250,6 +366,7 @@ namespace WordRename
     {
         File,
         Directory,
-        invalid
+        invalid,
+        MultipleFile
     }
 }

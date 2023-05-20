@@ -118,11 +118,10 @@
                       Style="{DynamicResource MaterialDesignOutlinedTextBox}"
                       TextWrapping="Wrap"
                       AllowDrop="True"
-
-                      VerticalAlignment="Stretch" />
-            <!--PreviewDragOver="Srcbox_PreviewDragOVer"
+                      PreviewDragOver="Srcbox_PreviewDragOVer"
                       DragEnter="Srcbox_DragEnter"
-                      Drop="Srcbox_Drop"-->
+                      Drop="Srcbox_Drop"
+                      VerticalAlignment="Stretch" />
         </DockPanel>
 
         <Button  Height="30"
@@ -235,6 +234,13 @@
 
             </ListView.View>
         </ListView>
+        <Button Grid.Row="4" VerticalAlignment="Top" HorizontalAlignment="Right" Grid.Column="2"
+                Content="LOG" Style="{StaticResource MaterialDesignOutlinedLightButton}"
+                FontStyle="Italic" Click="LogBtn_Clicked"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                Margin="0,0,15,0">
+            
+        </Button>
         <materialDesign:Snackbar Grid.Row="3"
                                  Margin="0,100,0,0"
                                  Grid.ColumnSpan="2"
